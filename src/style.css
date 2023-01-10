@@ -1,0 +1,90 @@
+:root {
+	font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+	font-size: 16px;
+	line-height: 24px;
+	font-weight: 400;
+
+	color-scheme: light dark;
+	color: rgba(255, 255, 255, 0.87);
+	background-color: #242424;
+
+	font-synthesis: none;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	-webkit-text-size-adjust: 100%;
+}
+
+.container {
+  	max-width: 1050px;
+	width: 100%;
+	padding: 0 15px;
+	margin: 0 auto;
+}
+
+h1 {
+	margin: 30px 0 10px;
+	text-align: center;
+}
+
+h2 {
+	margin: 50px 0;
+	font-weight: 900;
+	font-size: 5rem;
+	text-align: center;
+}
+
+.difficulty-selector {
+	display: flex;
+	justify-content: center;
+	gap: 15px;
+	margin-top: 15px;	
+	margin-bottom: 15px;	
+}
+
+#board {
+	margin: 40px auto;
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 2px;
+	border-radius: 8px;
+	overflow: hidden;
+	width: 298px!important
+}
+
+.box {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1px;
+}
+
+.cell {
+	background-color: #fff;
+	color: black;
+	width: 32px;
+	height: 32px;
+	position: relative;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	border-radius: 0px;
+	overflow: hidden;
+}
+
+.cell p {
+	color: black;
+	font-weight: 900;
+	pointer-events: none;
+}
+
+.cell[data-is-checked="1"] {
+	background-color: white;
+}
+
+.cell.selected {
+	background-color: rgb(0, 195, 175);
+}
+
+/* #app.sudoku .cell:nth-child(3n) {
+	border-right-width: 3px;
+} */
