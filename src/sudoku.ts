@@ -3,13 +3,8 @@ import { GameBoard } from './gameBoard'
 let preload_array = [{"x":"1","y":"1","val":"3"},{"x":"1","y":"4","val":"6"},{"x":"1","y":"5","val":"1"},{"x":"1","y":"9","val":"8"},{"x":"2","y":"3","val":"2"},{"x":"2","y":"5","val":"3"},{"x":"2","y":"7","val":"7"},{"x":"2","y":"8","val":"6"},{"x":"3","y":"4","val":"7"},{"x":"3","y":"5","val":"5"},{"x":"3","y":"7","val":"2"},{"x":"3","y":"8","val":"9"},{"x":"4","y":"2","val":"9"},{"x":"4","y":"4","val":"8"},{"x":"4","y":"8","val":"1"},{"x":"5","y":"2","val":"4"},{"x":"5","y":"4","val":"1"},{"x":"5","y":"5","val":"7"},{"x":"5","y":"6","val":"3"},{"x":"5","y":"8","val":"5"},{"x":"6","y":"2","val":"5"},{"x":"6","y":"6","val":"9"},{"x":"6","y":"8","val":"2"},{"x":"7","y":"2","val":"3"},{"x":"7","y":"3","val":"7"},{"x":"7","y":"5","val":"4"},{"x":"7","y":"6","val":"1"},{"x":"8","y":"2","val":"2"},{"x":"8","y":"3","val":"5"},{"x":"8","y":"5","val":"8"},{"x":"8","y":"7","val":"9"},{"x":"9","y":"1","val":"4"},{"x":"9","y":"6","val":"9"},{"x":"9","y":"7","val":"7"},{"x":"9","y":"9","val":"2"}]
 
 export class Sudoku extends GameBoard {
-    row_of_boxes: number
-
     constructor(container: HTMLElement, rows: number, columns: number) {
         super(container, rows, columns)
-
-        this.row_of_boxes = 0
-
         this.initEventListeners()
     }
 
@@ -35,20 +30,8 @@ export class Sudoku extends GameBoard {
 
         for(let i = 1; i <= 3; i++) {
             for(let j = 1; j <= 3; j++) {
-                // console.log(y_delta)
-                // let x = (i - (index % 3))
                 let x = i + x_delta
                 let y = j + y_delta
-
-                // console.log(i * j)
-                
-                // console.log(parseInt(index))
-                // console.log(x)
-                // console.log(grid_array[j])
-                // console.log(i)
-                // console.log(j)
-
-                // index = (index * 9) + i
                 let cell = this.createBoxCell(i.toString(), index.toString(), x.toString(), y.toString())
                 box.appendChild(cell)
             }
@@ -76,8 +59,14 @@ export class Sudoku extends GameBoard {
         console.log(JSON.stringify(preload_json))
     }
 
-    preloadBoard(preload_json: {}) {
-        console.log(preload_json)
+    preloadBoard(preload_json: { x: string, y: string, val: string, }[]) {
+        for(let element of preload_json) {
+            let cell = document.querySelector(`[data-x="${element.x}"][data-y="${element.y}"]`) as HTMLElement
+            if(!cell) continue
+
+            this.addNumberToCell(cell, parseInt(element.val))
+            cell.dataset.isPreloaded = '1'
+        }
     }
 
     generateBoard() {
@@ -104,6 +93,8 @@ export class Sudoku extends GameBoard {
             }
             index++
         }
+
+        this.preloadBoard(preload_array)
     }
 
     scanBoard() {
@@ -209,25 +200,27 @@ export class Sudoku extends GameBoard {
     }
 
     addNumberToCell(cell: HTMLElement, number_to_add: number): void {
+        if(cell.dataset.isPreloaded == '1') return
         if(cell.querySelector('p')) {
             let number_element = cell.querySelector('p') as HTMLElement
             number_element.innerHTML = number_to_add.toString()
-            number_element.dataset.currentNumber = number_to_add.toString()
+            cell.dataset.currentNumber = number_to_add.toString()
         } else {
             let number_element = document.createElement('p')
             number_element.classList.add('number')
             number_element.innerHTML = number_to_add.toString()
-            number_element.dataset.currentNumber = number_to_add.toString()
+            cell.dataset.currentNumber = number_to_add.toString()
     
             cell.appendChild(number_element)
         }
     }
     
     removeNumberFromCell(cell: HTMLElement): void {
+        if(cell.dataset.isPreloaded == '1') return
         if(cell.querySelector('p')) {
             let number_element = cell.querySelector('p') as HTMLElement
             number_element.innerHTML = ''
-            number_element.dataset.currentNumber = ''
+            cell.dataset.currentNumber = ''
         }
     }
 
@@ -315,15 +308,15 @@ export class Sudoku extends GameBoard {
         document.addEventListener('keyup', (e): void => {
             e.preventDefault()
 
-            console.log(e.key)
-
             let key = this.getKey(e.key)
             if(!key) return
 
             let selected_cell = this.getSelectedCell() as HTMLElement
             if(!selected_cell) return
-            // @ts-ignore
-            let current_number = parseInt(selected_cell.dataset.currentNumber)
+            
+            let current_number = selected_cell.dataset.currentNumber ? parseInt(selected_cell.dataset.currentNumber) : false
+            console.log('current_number:', current_number)
+            console.log('key:', key)
             if(current_number && current_number == key) {
                 this.removeNumberFromCell(selected_cell)
             } else if(typeof key === 'number') {

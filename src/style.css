@@ -49,7 +49,8 @@ h2 {
 	gap: 2px;
 	border-radius: 8px;
 	overflow: hidden;
-	width: 298px!important
+	/* width: 298px!important */
+	width: 406px!important
 }
 
 .box {
@@ -61,13 +62,15 @@ h2 {
 .cell {
 	background-color: #fff;
 	color: black;
-	width: 32px;
-	height: 32px;
+	/* width: 32px;
+	height: 32px; */
+	width: 44px;
+	height: 44px;
 	position: relative;
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	border-radius: 0px;
+	/* border-radius: 2px; */
 	overflow: hidden;
 }
 
