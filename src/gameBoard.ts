@@ -93,7 +93,7 @@ export abstract class GameBoard {
 
     scanBoard() {
         return new Promise(resolve => {
-            console.log('scanning')
+            console.log('Scanning game board')
     
             for(let i = 0; i < this.rows; i++) {
                 for(let j = 0; j < this.columns; j++) {

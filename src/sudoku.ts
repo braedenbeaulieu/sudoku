@@ -64,7 +64,7 @@ export class Sudoku extends GameBoard {
             let cell = document.querySelector(`[data-x="${element.x}"][data-y="${element.y}"]`) as HTMLElement
             if(!cell) continue
 
-            this.addNumberToCell(cell, parseInt(element.val))
+            this.addNumberToCell(cell, element.val)
             cell.dataset.isPreloaded = '1'
         }
     }
@@ -97,24 +97,33 @@ export class Sudoku extends GameBoard {
         this.preloadBoard(preload_array)
     }
 
-    scanBoard() {
-        return new Promise(resolve => {
-            console.log('Scanning game board')
-    
-            for(let i = 0; i < this.rows; i++) {
-                for(let j = 0; j < this.columns; j++) {
-                    let cell = this.getCellByXY(i, j)
-                }
-            }
+    togglePencilMode() {
+        console.log('Toggle pencil mode')
+        let board = document.querySelector('#board') as HTMLElement
+        let is_in_pencil_mode = this.isInPencilMode()
 
-            resolve(true)
-        })
+        if(is_in_pencil_mode === '1') {
+            board.dataset.pencilMode = '0'
+        } else if(is_in_pencil_mode === '0') {
+            board.dataset.pencilMode = '1'
+        }
+    }
+
+    togglePencilModeOff() {
+        let board = document.querySelector('#board') as HTMLElement
+        board.dataset.pencilMode = '0'
+    }
+    
+    isInPencilMode() {
+        let board = document.querySelector('#board') as HTMLElement
+        return board.dataset.pencilMode ? board.dataset.pencilMode : '0'
     }
 
     async resetBoard() {
         this.getBoard().innerHTML = ''
         this.setDifficulty(null)
         this.generateBoard()
+        this.togglePencilModeOff()
         this.first_click = true
     }
     
@@ -129,6 +138,7 @@ export class Sudoku extends GameBoard {
         this.container?.append(board)
         this.setDifficulty(null)
         this.generateBoard()
+        this.togglePencilModeOff()
         this.first_click = true
     }
 
@@ -152,7 +162,7 @@ export class Sudoku extends GameBoard {
     }
 
     selectCell(cell: HTMLElement) {
-        let current_selection = document.querySelector('.cell.selected') as HTMLElement
+        let current_selection = this.getSelectedCell()
         if(current_selection) {
             current_selection.classList.remove('selected')
         }
@@ -169,9 +179,6 @@ export class Sudoku extends GameBoard {
     }
 
     moveSelectedCell(selected_cell: HTMLElement, direction: string) {
-        console.log(selected_cell)
-        console.log(direction)
-
         let next_cell
 
         let x = selected_cell.dataset.x ? parseInt(selected_cell.dataset.x) : 0
@@ -199,22 +206,136 @@ export class Sudoku extends GameBoard {
         if(next_cell) this.selectCell(next_cell)
     }
 
-    addNumberToCell(cell: HTMLElement, number_to_add: number): void {
+    checkBox(cell: HTMLElement, key: number): boolean {
+        let box = cell.parentElement as HTMLElement
+        let cells_in_box = Array.from(box.querySelectorAll('.cell')) as HTMLElement[]
+        
+        
+        // if the box already has that number
+        for(let cell_in_box of cells_in_box) {
+            let cell_in_box_number = this.getNumberFromCell(cell_in_box)
+            if(cell_in_box_number == null) continue
+
+            if(cell_in_box_number == key) return false
+        }
+
+        return true
+    }
+
+    checkHorizontalLine(cell: HTMLElement, key: number): boolean {
+        let cells_in_horizontal_line = Array.from(document.querySelectorAll(`.cell[data-x="${cell.dataset.x}"]`)) as HTMLElement[]
+
+        // if the line already has that number
+        for(let cell_in_line of cells_in_horizontal_line) {
+            let cell_in_line_number = this.getNumberFromCell(cell_in_line)
+            if(cell_in_line_number == null) continue
+
+            if(cell_in_line_number == key) return false
+        }
+
+        return true
+    }
+
+    checkVerticalLine(cell: HTMLElement, key: number): boolean {
+        let cells_in_vertical_line = Array.from(document.querySelectorAll(`.cell[data-y="${cell.dataset.y}"]`)) as HTMLElement[]
+
+        // if the line already has that number
+        for(let cell_in_line of cells_in_vertical_line) {
+            let cell_in_line_number = this.getNumberFromCell(cell_in_line)
+            if(cell_in_line_number == null) continue
+
+            if(cell_in_line_number == key) return false
+        }
+
+        return true
+    }
+
+    checkMove(cell: HTMLElement, key: number): boolean {
+        if(!this.checkBox(cell, key)) return false
+        if(!this.checkHorizontalLine(cell, key)) return false
+        if(!this.checkVerticalLine(cell, key)) return false
+        
+        return true
+    }
+
+    addPencilNumberToCell(cell: HTMLElement, number_to_add: string): void {
         if(cell.dataset.isPreloaded == '1') return
+
+        let pencil_digits = cell.dataset.pencilDigits?.split(',')
+        pencil_digits = typeof pencil_digits == 'undefined' ? [] : pencil_digits
+
+        console.log('pencil_digits 1', pencil_digits)
+        console.log('pencil_digits.indexOf(number_to_add)', pencil_digits.indexOf(number_to_add))
+        if(pencil_digits.indexOf(number_to_add) >= 0) {
+            this.removePencilNumberFromCell(cell, number_to_add)
+            return
+        }
+
+        let sanitized_pencil_digits: string[] = []
+        for(let digit of pencil_digits) {
+            if(typeof digit != 'undefined' && parseInt(digit) >= 1 && parseInt(digit) <= 9) {
+                sanitized_pencil_digits.push(digit)
+            }
+        
+        }
+        sanitized_pencil_digits.push(number_to_add)
+
+        sanitized_pencil_digits = sanitized_pencil_digits.sort((a: string, b: string) => parseInt(a) - parseInt(b))
+
+        let number_element = document.createElement('small')
+        number_element.classList.add('number')
+        number_element.innerHTML = number_to_add
+
+        console.log(number_element)
+    
+        cell.dataset.pencilDigits = sanitized_pencil_digits.join(',')
+        cell.appendChild(number_element)
+
+        return
+    }
+
+    addNumberToCell(cell: HTMLElement, number_to_add: string): void {
+        if(cell.dataset.isPreloaded == '1') return
+
+        if(cell.querySelector('small')) {
+            cell.removeChild(cell.firstChild as HTMLElement)
+        }
+
         if(cell.querySelector('p')) {
             let number_element = cell.querySelector('p') as HTMLElement
-            number_element.innerHTML = number_to_add.toString()
-            cell.dataset.currentNumber = number_to_add.toString()
+            number_element.innerHTML = number_to_add
+            cell.dataset.currentNumber = number_to_add
         } else {
             let number_element = document.createElement('p')
             number_element.classList.add('number')
-            number_element.innerHTML = number_to_add.toString()
-            cell.dataset.currentNumber = number_to_add.toString()
+            number_element.innerHTML = number_to_add
+            cell.dataset.currentNumber = number_to_add
     
             cell.appendChild(number_element)
         }
     }
     
+    removePencilNumberFromCell(cell: HTMLElement, number_to_remove: string): void {
+        console.log('Removing pencil number', number_to_remove)
+        if(cell.dataset.isPreloaded == '1') return
+        let pencil_digits = cell.dataset.pencilDigits?.split(',')
+        pencil_digits = typeof pencil_digits == 'undefined' ? [] : pencil_digits
+        // @ts-ignore
+        if(pencil_digits?.indexOf(number_to_remove) < 0) return
+
+        pencil_digits.splice(pencil_digits?.indexOf(number_to_remove), 1)
+
+        console.log('pencil_digits [] ', pencil_digits)
+        
+        cell.dataset.pencilDigits = ''
+        cell.dataset.currentNumber = ''
+        cell.innerHTML = ''
+        for(let digit of pencil_digits) {
+            this.addPencilNumberToCell(cell, digit)
+        }
+
+    }
+
     removeNumberFromCell(cell: HTMLElement): void {
         if(cell.dataset.isPreloaded == '1') return
         if(cell.querySelector('p')) {
@@ -222,6 +343,15 @@ export class Sudoku extends GameBoard {
             number_element.innerHTML = ''
             cell.dataset.currentNumber = ''
         }
+    }
+    
+    getNumberFromCell(cell: HTMLElement): number|null {
+        if(cell.querySelector('p')) {
+            let number_element = cell.querySelector('p') as HTMLElement
+            return parseInt(number_element.innerHTML)
+        }
+
+        return null
     }
 
     getKey(key: string): string|number|false {
@@ -247,6 +377,10 @@ export class Sudoku extends GameBoard {
                 return 8
             case 'c':
                 return 9
+            case 'Backspace':
+                return 'remove'
+            case 'Enter':
+                return 'pencil'
             case 'ArrowRight':
                 return 'right'
             case 'ArrowLeft':
@@ -261,16 +395,13 @@ export class Sudoku extends GameBoard {
     }
 
     leftClick(clicked_cell: any): void {
-        console.log('Left click')
-        if(false) {
-            this.winGame()
-        }
+        // console.log('Left click')
 
         if(!clicked_cell) return
         if(clicked_cell.dataset.isChecked == '1') return
 
-        let x = parseInt(clicked_cell.dataset.x)
-        let y = parseInt(clicked_cell.dataset.y)
+        // let x = parseInt(clicked_cell.dataset.x)
+        // let y = parseInt(clicked_cell.dataset.y)
 
         this.selectCell(clicked_cell)
     }
@@ -281,7 +412,7 @@ export class Sudoku extends GameBoard {
     }
 
     async firstClick(cell: HTMLElement) {
-        console.log('first click!')
+        console.log('Rirst click')
 
         await this.scanBoard()
         this.leftClick(cell)
@@ -303,9 +434,9 @@ export class Sudoku extends GameBoard {
             if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(e.key) > -1) {
                 e.preventDefault()
             }
-        });
+        })
 
-        document.addEventListener('keyup', (e): void => {
+        document.addEventListener('keydown', (e): void => {
             e.preventDefault()
 
             let key = this.getKey(e.key)
@@ -315,14 +446,26 @@ export class Sudoku extends GameBoard {
             if(!selected_cell) return
             
             let current_number = selected_cell.dataset.currentNumber ? parseInt(selected_cell.dataset.currentNumber) : false
-            console.log('current_number:', current_number)
-            console.log('key:', key)
-            if(current_number && current_number == key) {
+            if((current_number && current_number == key) || key == 'remove') {
+                selected_cell.classList.remove('error')
                 this.removeNumberFromCell(selected_cell)
+                this.removePencilNumberFromCell(selected_cell, current_number.toString())
             } else if(typeof key === 'number') {
-                this.addNumberToCell(selected_cell, key)
+                let move_status = this.checkMove(selected_cell, key)
+                if(move_status == false && selected_cell.dataset.isPreloaded != '1') {
+                    selected_cell.classList.add('error')
+                }
+                this.isInPencilMode() == '1' ? this.addPencilNumberToCell(selected_cell, key.toString()) : this.addNumberToCell(selected_cell, key.toString())
             } else if(typeof key === 'string') {
-                this.moveSelectedCell(selected_cell, key)
+                if(key == 'pencil') {
+                    this.togglePencilMode()
+                    document.querySelector('.pencil-toggle')?.classList.toggle('enabled')
+                } else if(['right', 'left', 'up', 'down'].indexOf(key) >= -1) {
+                    // let error_cell = document.querySelector('.cell.error') as HTMLElement
+                    // if(error_cell) error_cell.classList.remove('error')
+
+                    this.moveSelectedCell(selected_cell, key)
+                }
             }
         })
 
@@ -342,6 +485,11 @@ export class Sudoku extends GameBoard {
                     this.leftClick(target)
                 }
             }
+        })
+
+        document.querySelector('.pencil-toggle')?.addEventListener('click', () => {
+            this.togglePencilMode()            
+            document.querySelector('.pencil-toggle')?.classList.toggle('enabled')
         })
     }
 }
